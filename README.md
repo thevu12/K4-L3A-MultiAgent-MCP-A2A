@@ -13,6 +13,9 @@ Agent phải:
 
 Customer message không phải ground truth. Không được tự đoán dữ liệu hoặc tạo `evidence_ref` giả.
 
+Implementation hiện dùng coordinator, bốn specialist domain và verifier deterministic. Thiết kế,
+luồng trace, failure policy và giới hạn được mô tả tại [ARCHITECTURE.md](ARCHITECTURE.md).
+
 ## Dữ liệu
 
 Tham khảo dữ liệu tại: https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce
@@ -142,6 +145,23 @@ Gợi ý có thể tổ chức các vai trò:
 
 Competition không chấm tên framework hay số lượng class. Scorer đánh giá kết quả, evidence và sự phối hợp thể hiện trong trace.
 
+Workflow đã triển khai:
+
+- discovery inventory trước khi gọi tool, không gọi tên tool ngoài inventory;
+- phân công `order_item_agent`, `payment_agent`, `shipment_agent`, `policy_agent`;
+- handoff evidence sang verifier và ghi đủ lifecycle trace;
+- kết luận bảo thủ, thiếu dữ liệu trả `insufficient_evidence`;
+- không coi nhiều payment là duplicate nếu evidence không có dấu hiệu duplicate;
+- deduplicate/giới hạn entity và evidence theo public schema;
+- validate lifecycle, evidence-to-trace linkage và scope trước khi đóng gói.
+
+### Chính sách model dưới 10B
+
+Runtime hiện không gọi generative model; quyết định dùng Python deterministic để tránh tạo evidence
+không có thật. Nếu mở rộng bằng LLM, allowlist của thiết kế là `Qwen/Qwen3-8B` (8.2B parameters),
+chỉ dùng để route/giải thích và không được thay verifier. Đây là phương án thiết kế, chưa phải tính
+năng đã tích hợp. Xem phần model trong [ARCHITECTURE.md](ARCHITECTURE.md#7-model-dưới-10-tỷ-tham-số).
+
 Hoàn thiện mô tả thiết kế trong `ARCHITECTURE.md`.
 
 ## 6. Chạy và kiểm tra
@@ -149,6 +169,13 @@ Hoàn thiện mô tả thiết kế trong `ARCHITECTURE.md`.
 ```bash
 day09 run
 day09 validate
+```
+
+Kiểm tra source và workflow giả lập trước khi chạy dữ liệu thật:
+
+```bash
+.venv/bin/ruff check .
+.venv/bin/pytest -q
 ```
 
 Kết quả được tạo tại:
